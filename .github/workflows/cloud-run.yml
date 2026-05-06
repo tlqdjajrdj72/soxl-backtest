@@ -1,12 +1,10 @@
 name: SOXL Backtest on Cloud Run
-
 on:
   push:
     branches: [main]
   schedule:
     - cron: '0 10 * * 0'
   workflow_dispatch:
-
 jobs:
   run-backtest:
     runs-on: ubuntu-latest
@@ -43,7 +41,7 @@ jobs:
       
       - name: Upload results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: backtest-results
           path: |
