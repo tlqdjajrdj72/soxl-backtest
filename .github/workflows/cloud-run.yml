@@ -4,20 +4,12 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '0 10 * * 0'  # 매주 일요일 10:00 UTC (약 한국시간 18:00)
-  workflow_dispatch:      # 수동 트리거
-
-env:
-  GCP_REGION: us-central1
-  GCP_SERVICE_NAME: soxl-backtest
+    - cron: '0 10 * * 0'
+  workflow_dispatch:
 
 jobs:
-  deploy-and-run:
+  run-backtest:
     runs-on: ubuntu-latest
-    
-    permissions:
-      contents: read
-      id-token: write
     
     steps:
       - name: Checkout code
@@ -33,40 +25,28 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
       
-      - name: Configure Docker authentication
-        run: |
-          gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
       
-      - name: Build Docker image
+      - name: Install dependencies
         run: |
-          docker build -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker-repo/${{ env.GCP_SERVICE_NAME }}:latest .
+          pip install -r requirements.txt
       
-      - name: Push Docker image
+      - name: Run SOXL Backtest
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker-repo/${{ env.GCP_SERVICE_NAME }}:latest
+          python soxl_main.py
       
-      - name: Deploy to Cloud Run Job
-        run: |
-          gcloud run jobs create ${{ env.GCP_SERVICE_NAME }} \
-            --image=${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker-repo/${{ env.GCP_SERVICE_NAME }}:latest \
-            --region=${{ env.GCP_REGION }} \
-            --memory=2Gi \
-            --cpu=1 \
-            --timeout=1800 \
-            --set-env-vars="TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }},TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}" \
-            --no-wait \
-            --overwrite 2>/dev/null || echo "Job already exists, updating..."
-      
-      - name: Execute Cloud Run Job
-        run: |
-          gcloud run jobs execute ${{ env.GCP_SERVICE_NAME }} \
-            --region=${{ env.GCP_REGION }} \
-            --wait
-      
-      - name: Show execution logs
+      - name: Upload results
         if: always()
-        run: |
-          echo "=== Cloud Run Job Logs ==="
-          gcloud run jobs logs read ${{ env.GCP_SERVICE_NAME }} \
-            --region=${{ env.GCP_REGION }} \
-            --limit=50
+        uses: actions/upload-artifact@v3
+        with:
+          name: backtest-results
+          path: |
+            soxl_backtest_result.png
+            soxl_backtest_detail.csv
+            soxl_backtest_summary.csv
