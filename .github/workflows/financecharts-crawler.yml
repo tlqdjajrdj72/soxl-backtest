@@ -1,0 +1,56 @@
+name: Crawl FinanceCharts Quarterly Revenue
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 20 * * 1'  # 매주 월요일 20시 UTC (한국시간 화요일 새벽 5시)
+  workflow_dispatch:
+
+jobs:
+  crawl-financecharts:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser chromium-chromedriver
+      
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements_crawler.txt
+      
+      - name: Run FinanceCharts Crawler
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GITHUB_ACTIONS: true
+        run: |
+          python financecharts_crawler.py
+      
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quarterly-revenue-data
+          path: |
+            /tmp/quarterly_revenue_data.json
+            /tmp/quarterly_revenue_summary.csv
+          retention-days: 30
+      
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## 📊 FinanceCharts 크롤링 완료" >> $GITHUB_STEP_SUMMARY
+          echo "- ⏰ $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "- 📈 50개 주식 Quarterly Revenue 데이터" >> $GITHUB_STEP_SUMMARY
+          echo "- 📁 결과: quarterly_revenue_data.json, quarterly_revenue_summary.csv" >> $GITHUB_STEP_SUMMARY
