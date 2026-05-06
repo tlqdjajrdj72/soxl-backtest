@@ -170,11 +170,6 @@ def strategy_fixed_dca(data, initial_capital=INITIAL_CAPITAL, weekly_investment=
 
 # ==================== 전략 3: Inverse Volatility DCA ====================
 def strategy_inv_volatility_dca(data, initial_capital=INITIAL_CAPITAL, weekly_base=WEEKLY_BASE_INVESTMENT):
-    """
-    변동성 기반 DCA
-    - 변동성 낮음 → 더 많이 투자 (좋은 매수 기회)
-    - 변동성 높음 → 적게 투자 (위험)
-    """
     portfolio_value = [initial_capital]
     shares_held = 0
     cash = initial_capital
@@ -189,35 +184,20 @@ def strategy_inv_volatility_dca(data, initial_capital=INITIAL_CAPITAL, weekly_ba
         days_since = (current_date - last_investment_date).days
         
         if days_since >= 7 and not pd.isna(vol) and vol > 0:
-            # 역 변동성 가중치
-            inv_vol_weight = 1 / (vol + 0.0001)
-            
-            # 최근 20일 평균 역변동성으로 정규화
-            recent_vols = data['Volatility'].iloc[max(0, i-20):i+1]
-            avg_inv_vol = (1 / (recent_vols + 0.0001)).mean()
-            normalized_weight = inv_vol_weight / avg_inv_vol if avg_inv_vol > 0 else 1.0
-            
-            # 극단치 제한
-            normalized_weight = np.clip(normalized_weight, 0.5, 1.5)
-            
-            investment_amount = weekly_base * normalized_weight
-            
-            if cash >= investment_amount:
-                shares_bought = investment_amount / close
-                shares_held += shares_bought
-                cash -= investment_amount
-                investment_history.append({
-                    'date': current_date,
-                    'price': close,
-                    'shares': shares_bought,
-                    'amount': investment_amount,
-                    'volatility': vol,
-                    'weight': normalized_weight
-                })
-                last_investment_date = current_date
-            
-            current_value = cash + (shares_held * close)
-            portfolio_value.append(current_value)
+            # ... 코드 ...
+            investment_history.append({
+                'date': current_date,
+                'price': close,
+                'shares': shares_bought,
+                'amount': investment_amount,
+                'volatility': vol,
+                'weight': normalized_weight
+            })
+            last_investment_date = current_date
+        
+        # ← 이 부분을 if 밖으로 이동!
+        current_value = cash + (shares_held * close)
+        portfolio_value.append(current_value)
     
     return pd.Series(portfolio_value, index=data.index), investment_history
 
