@@ -10,6 +10,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -34,10 +36,13 @@ STOCKS = [
 ]
 
 # ==================== Selenium 설정 ====================
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
+
 def setup_driver():
     """
     Selenium WebDriver 설정
-    GitHub Actions 환경에서도 작동하도록 설정
+    webdriver-manager로 자동 드라이버 설치
     """
     chrome_options = Options()
     
@@ -55,12 +60,15 @@ def setup_driver():
     chrome_options.add_argument('--window-size=1920,1080')
     
     try:
-        driver = webdriver.Chrome(options=chrome_options)
+        # webdriver-manager로 자동 설치
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
         print("✓ Chrome WebDriver 설정 완료")
         return driver
     except Exception as e:
         print(f"✗ WebDriver 설정 실패: {e}")
         return None
+
 
 # ==================== 데이터 크롤링 ====================
 def crawl_quarterly_revenue(driver, stock):
