@@ -33,6 +33,10 @@ STOCKS = [
 
 def setup_driver():
     chrome_options = Options()
+    
+    # ← 이 2줄 추가
+    chrome_options.binary_location = "/usr/bin/chromium-browser"
+    
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
@@ -48,6 +52,7 @@ def setup_driver():
     except Exception as e:
         print(f"WebDriver Error: {e}")
         return None
+
 
 def crawl_quarterly_revenue(driver, stock):
     url = f"https://www.financecharts.com/stocks/{stock}/income-statement/revenue"
