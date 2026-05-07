@@ -15,18 +15,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser chromium-chromedriver
+          which chromium-browser
+          chromium-browser --version
+      
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
       
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y chromium-browser chromium-chromedriver
-      
       - name: Install Python dependencies
         run: |
+          pip install --upgrade pip
           pip install -r requirements_crawler.txt
       
       - name: Run FinanceCharts Crawler
